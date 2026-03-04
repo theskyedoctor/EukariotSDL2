@@ -1,5 +1,7 @@
 # EukariotSDL2
 
+Genetically edit cells to dominate in this strategic autobattler with roguelike elements
+
 Shield: [![CC BY-NC 4.0][cc-by-nc-shield]][cc-by-nc]
 
 This work is licensed under a
