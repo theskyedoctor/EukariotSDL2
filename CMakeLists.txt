@@ -5,15 +5,12 @@ set(CMAKE_CXX_STANDARD 20)
 
 add_executable(EukariotSDL2 main.cpp)
 add_subdirectory(vendor/SDL2)
+add_subdirectory(vendor/SDL_image)
 
-target_include_directories(${PROJECT_NAME}
-        PUBLIC libs/SDL2/include
-)
-
-target_link_directories(${PROJECT_NAME}
-        PUBLIC libs/SDL2/src
-)
-
-target_link_libraries(${PROJECT_NAME} SDL2main SDL2-static)
-
+target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image)
+if (WIN32)
+    target_link_libraries(
+            Sandbox PRIVATE SDL2main
+    )
+endif()
 

@@ -1,17 +1,37 @@
 #include <SDL.h>
+#include <SDL_image.h>
 #include <stdio.h>
+#include <string>
 
 //screen dimension constants
 const int SCREEN_WIDTH = 640;
 const int SCREEN_HEIGHT = 480;
 
-int main( int argc, char* args[] )
-{
-    //The window we'll be rendering to
-    SDL_Window* window = NULL;
+//starts up SDL and creates window
+bool init();
 
-    //The surface contained by the window
-    SDL_Surface* screenSurface = NULL;
+//Loads media
+bool loadMedia();
+
+//frees media and shuts down SDL
+void close();
+
+//loads individual image as texture
+SDL_Texture* loadTexture( std::string path );
+
+//the window we'll be rendering to
+SDL_Window* gWindow = NULL;
+
+//The window renderer
+SDL_Renderer* gRenderer = NULL;
+
+//Current displayed texture
+SDL_Texture* gTexture = NULL;
+
+bool init()
+{
+    //initialization flag
+    bool success = true;
 
     //initialize SDL
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
@@ -20,33 +40,149 @@ int main( int argc, char* args[] )
     }
     else
     {
+        //set texture filtering to linear
+        if ( !SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, "1" ) )
+        {
+            printf(  "Warning: Linear texture filtering is not enabled!" );
+        }
+
         //create window
-        window = SDL_CreateWindow( "SDL Tutorial", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
-        if( window == NULL )
+        gWindow = SDL_CreateWindow( "Eukariot", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+        if( gWindow == NULL )
         {
             printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
+            success = false;
         }
         else
         {
-            //Get window surface
-            screenSurface = SDL_GetWindowSurface( window );
+            //create renderer for window
+            gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED );
+            if( gRenderer == NULL )
+            {
+                printf( "Renderer could not be created! SDL_Error: %s\n", SDL_GetError() );
+                success = false;
+            }
+            else
+            {
+                //initialize render color
+                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
 
-            //fill the surface white
-            SDL_FillRect( screenSurface, NULL, SDL_MapRGB( screenSurface->format, 0xFF, 0xFF, 0xFF ) );
+                //initialize PBG loading
+                int imgFlags = IMG_INIT_PNG;
+                if( !( IMG_Init( imgFlags ) & imgFlags ) )
+                {
+                    printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+                    success = false;
+                }
+            }
+        }
+    }
+    return success;
+}
 
-            //Update the surface
-            SDL_UpdateWindowSurface( window );
+bool loadMedia()
+{
+    //loading success flag
+    bool success = true;
 
-            //Hack to get window to stay up
-            SDL_Event e; bool quit = false; while( quit == false ){while( SDL_PollEvent( &e ) ){ if ( e.type == SDL_QUIT ) quit = true; }}
+    //load png texture
+    gTexture = loadTexture( "../src/eukariot.png" );
+    if ( gTexture == NULL )
+    {
+        printf( "failted to load texture image!\n" );
+        success = false;
+    }
+    return success;
+}
+
+void close()
+{
+    //free loaded image
+    SDL_DestroyTexture( gTexture );
+    gTexture = NULL;
+
+    //destroy window
+    SDL_DestroyRenderer( gRenderer );
+    SDL_DestroyWindow( gWindow );
+    gWindow = NULL;
+    gRenderer = NULL;
+
+    //quit SDL subsystems
+    IMG_Quit();
+    SDL_Quit();
+}
+
+SDL_Texture* loadTexture( std::string path )
+{
+    //the final texture
+    SDL_Texture* newTexture = NULL;
+    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
+    if( loadedSurface == NULL )
+    {
+        printf(  "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
+    }
+    else
+    {
+        //create texture from surface pixels
+        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
+        if ( newTexture == NULL )
+        {
+            printf("Unable to create texture form %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
+        }
+
+        //get rid of old loaded surface
+        SDL_FreeSurface( loadedSurface );
+    }
+    return newTexture;
+}
+
+int main( int argc, char* args[] )
+{
+    //start up SDL and create window
+    if ( !init() )
+    {
+        printf( "Failed to initialize!\n" );
+    }
+    else
+    {
+        if ( !loadMedia() )
+        {
+            printf( "Failed to load media!\n");
+        }
+        else
+        {
+            //main loop flag
+            bool quit = false;
+
+            //event handler
+            SDL_Event e;
+
+            while ( !quit )
+            {
+                //handle events on queue
+                while ( SDL_PollEvent( &e) != 0 )
+                {
+                    if ( e.type == SDL_QUIT )
+                    {
+                        quit = true;
+                    }
+                }
+
+                //clear screen
+                SDL_RenderClear( gRenderer );
+
+                //render texture to screen
+                SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
+
+                //update screen
+                SDL_RenderPresent( gRenderer );
+
+            }
         }
     }
 
-    //Destroy Window
-    SDL_DestroyWindow( window );
 
-    //Quit SDL subsystems
-    SDL_Quit();
+    close();
 
     return 0;
 }
