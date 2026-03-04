@@ -1,3 +1,0 @@
-/home/skyehigh/CLionProjects/EuakriotSDL2/cmake-build-debug/CMakeFiles/EuakriotSDL2.dir
-/home/skyehigh/CLionProjects/EuakriotSDL2/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/skyehigh/CLionProjects/EuakriotSDL2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
