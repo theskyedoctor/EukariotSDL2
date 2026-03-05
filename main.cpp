@@ -1,11 +1,12 @@
 #include <SDL.h>
 #include <SDL_image.h>
+#include <SDL_opengl.h>
 #include <stdio.h>
 #include <string>
 
 //screen dimension constants
-const int SCREEN_WIDTH = 640;
-const int SCREEN_HEIGHT = 480;
+const int SCREEN_WIDTH = 1280;
+const int SCREEN_HEIGHT = 720;
 
 //starts up SDL and creates window
 bool init();
