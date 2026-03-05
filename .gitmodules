@@ -7,6 +7,3 @@
 	path = vendor/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
 	branch = SDL2
-[submodule "vendor/glew"]
-	path = vendor/glew
-	url = https://github.com/nigels-com/glew.git
