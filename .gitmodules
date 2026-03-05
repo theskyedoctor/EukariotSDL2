@@ -7,3 +7,6 @@
 	path = vendor/SDL_image
 	url = https://github.com/libsdl-org/SDL_image.git
 	branch = SDL2
+[submodule "vendor/GLEW"]
+	path = vendor/GLEW
+	url = https://github.com/Perlmint/glew-cmake.git
