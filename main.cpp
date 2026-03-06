@@ -1,34 +1,34 @@
 #include <SDL.h>
 #include <SDL_image.h>
-#include <GL/glew.h>
 #include <SDL_opengl.h>
+#include "headers/LUtil.h"
 #include <stdio.h>
 #include <string>
-
-//screen dimension constants
-const int SCREEN_WIDTH = 1280;
-const int SCREEN_HEIGHT = 720;
 
 //starts up SDL and creates window
 bool init();
 
-//Loads media
-bool loadMedia();
+//Input handler
+void handleKeys( unsigned char key, int x, int y );
 
 //frees media and shuts down SDL
 void close();
 
-//loads individual image as texture
-SDL_Texture* loadTexture( std::string path );
+void runMainLoop( int val );
+/*
+Pre Condition:
+ -Initialized SDL2
+Post Condition:
+ -Calls the main loop functions and sets itself to be called back in 1000 / SCREEN_FPS milliseconds
+Side Effects:
+ -Sets sdl timer
+*/
 
 //the window we'll be rendering to
 SDL_Window* gWindow = NULL;
 
-//The window renderer
-SDL_Renderer* gRenderer = NULL;
-
-//Current displayed texture
-SDL_Texture* gTexture = NULL;
+//openGL context
+SDL_GLContext gContext;
 
 bool init()
 {
@@ -39,6 +39,7 @@ bool init()
     if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
     {
         printf(  "SDL could not initialize! SDL_Error: %s\n", SDL_GetError() );
+        success = false;
     }
     else
     {
@@ -48,8 +49,12 @@ bool init()
             printf(  "Warning: Linear texture filtering is not enabled!" );
         }
 
+        //openGL 2.1
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+
         //create window
-        gWindow = SDL_CreateWindow( "Eukariot", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
+        gWindow = SDL_CreateWindow( "Eukariot", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
         if( gWindow == NULL )
         {
             printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
@@ -57,23 +62,25 @@ bool init()
         }
         else
         {
-            //create renderer for window
-            gRenderer = SDL_CreateRenderer( gWindow, -1, SDL_RENDERER_ACCELERATED );
-            if( gRenderer == NULL )
+            //Create context
+            gContext = SDL_GL_CreateContext( gWindow );
+            if ( gContext == NULL )
             {
-                printf( "Renderer could not be created! SDL_Error: %s\n", SDL_GetError() );
+                printf( "OpenGL context could not be created! SDL Error: %s\n", SDL_GetError() );
                 success = false;
             }
             else
             {
-                //initialize render color
-                SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
-
-                //initialize PBG loading
-                int imgFlags = IMG_INIT_PNG;
-                if( !( IMG_Init( imgFlags ) & imgFlags ) )
+                //use Vsync
+                if ( SDL_GL_SetSwapInterval( 1 ) < 0 )
                 {
-                    printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+                    printf( "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError() );
+                }
+
+                //Initialize OpenGL
+                if ( !initGL() )
+                {
+                    printf( "Unable to initialize OpenGL!\n" );
                     success = false;
                 }
             }
@@ -82,60 +89,34 @@ bool init()
     return success;
 }
 
-bool loadMedia()
-{
-    //loading success flag
-    bool success = true;
 
-    //load png texture
-    gTexture = loadTexture( "../src/eukariot.png" );
-    if ( gTexture == NULL )
+
+void handleKeys( unsigned char key, int x, int y )
+{
+    //toggle quad
+    if (key == 'q' )
     {
-        printf( "failted to load texture image!\n" );
-        success = false;
     }
-    return success;
 }
+
+
 
 void close()
 {
-    //free loaded image
-    SDL_DestroyTexture( gTexture );
-    gTexture = NULL;
 
     //destroy window
-    SDL_DestroyRenderer( gRenderer );
     SDL_DestroyWindow( gWindow );
     gWindow = NULL;
-    gRenderer = NULL;
 
     //quit SDL subsystems
-    IMG_Quit();
     SDL_Quit();
 }
 
-SDL_Texture* loadTexture( std::string path )
+void runMainLoop(int val)
 {
-    //the final texture
-    SDL_Texture* newTexture = NULL;
-    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
-    if( loadedSurface == NULL )
-    {
-        printf(  "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
-    }
-    else
-    {
-        //create texture from surface pixels
-        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
-        if ( newTexture == NULL )
-        {
-            printf("Unable to create texture form %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
-        }
-
-        //get rid of old loaded surface
-        SDL_FreeSurface( loadedSurface );
-    }
-    return newTexture;
+    //frame logic
+    update();
+    render();
 }
 
 int main( int argc, char* args[] )
@@ -147,43 +128,45 @@ int main( int argc, char* args[] )
     }
     else
     {
-        if ( !loadMedia() )
-        {
-            printf( "Failed to load media!\n");
-        }
-        else
-        {
-            //main loop flag
-            bool quit = false;
+        //main loop flag
+        bool quit = false;
 
-            //event handler
-            SDL_Event e;
+        //event handler
+        SDL_Event e;
 
-            while ( !quit )
+        //enable text input
+        SDL_StartTextInput();
+
+        //while application is running
+        while ( !quit )
+        {
+            //Handle events on queue
+            while ( SDL_PollEvent( &e ) != 0 )
             {
-                //handle events on queue
-                while ( SDL_PollEvent( &e) != 0 )
+                //User requests quit
+                if ( e.type == SDL_QUIT )
                 {
-                    if ( e.type == SDL_QUIT )
-                    {
-                        quit = true;
-                    }
+                    quit = true;
                 }
-
-                //clear screen
-                SDL_RenderClear( gRenderer );
-
-                //render texture to screen
-                SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
-
-                //update screen
-                SDL_RenderPresent( gRenderer );
-
+                //handle keypress with current mouse position
+                else if ( e.type == SDL_TEXTINPUT )
+                {
+                    int x = 0, y = 0;
+                    SDL_GetMouseState(&x, &y);
+                    handleKeys( e.text.text[ 0 ], x, y );
+                }
             }
+
+            //run main loop
+            runMainLoop(0);
+
+            //update screen
+            SDL_GL_SwapWindow( gWindow );
         }
+        //disable text input
+        SDL_StopTextInput();
     }
-
-
+    //free resources and close SDL
     close();
 
     return 0;
