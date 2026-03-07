@@ -9,6 +9,10 @@ const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;
 const int SCREEN_FPS = 60;
 
+//Color Modes
+const int COLOR_MODE_CYAN = 0;
+const int COLOR_MODE_MULTI = 1;
+
 bool initGL();
 /*
 Pre Condition:
@@ -45,3 +49,25 @@ Side Effects:
  -Clears the color buffer
  -Swaps the front/back buffer
 */
+
+//Input handler
+void handleKeys( unsigned char key, int x, int y );
+/*
+Pre Condition:
+ -None
+Post Condition:
+ -Toggles the color mode when the user presses q
+ -Cycles through different projection scales when the user presses e
+Side Effects:
+ -If the user presses e, the matrix mode is set to projection
+*/
+
+//viewport mode
+enum ViewPortMode
+{
+ VIEWPORT_MODE_FULL,
+ VIEWPORT_MODE_HALF_CENTER,
+ VIEWPORT_MODE_HALF_TOP,
+ VIEWPORT_MODE_QUAD,
+ VIEWPORT_MODE_RADAR
+};

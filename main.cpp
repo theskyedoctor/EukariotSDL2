@@ -8,9 +8,6 @@
 //starts up SDL and creates window
 bool init();
 
-//Input handler
-void handleKeys( unsigned char key, int x, int y );
-
 //frees media and shuts down SDL
 void close();
 
@@ -88,18 +85,6 @@ bool init()
     }
     return success;
 }
-
-
-
-void handleKeys( unsigned char key, int x, int y )
-{
-    //toggle quad
-    if (key == 'q' )
-    {
-    }
-}
-
-
 
 void close()
 {
