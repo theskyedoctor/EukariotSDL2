@@ -1,7 +1,7 @@
 #include <SDL.h>
 #include <SDL_image.h>
-#include <SDL_opengl.h>
 #include "headers/LUtil.h"
+#include <SDL_opengl.h>
 #include <stdio.h>
 #include <string>
 
@@ -47,8 +47,10 @@ bool init()
         }
 
         //openGL 2.1
-        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 2 );
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
+
 
         //create window
         gWindow = SDL_CreateWindow( "Eukariot", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN );
@@ -68,6 +70,13 @@ bool init()
             }
             else
             {
+                //initialize GLEW
+                glewExperimental = GL_TRUE;
+                GLenum glewError = glewInit();
+                if ( glewError != GLEW_OK )
+                {
+                    printf( "Error initializing GLEW! %s\n", glewGetErrorString( glewError ) );
+                }
                 //use Vsync
                 if ( SDL_GL_SetSwapInterval( 1 ) < 0 )
                 {

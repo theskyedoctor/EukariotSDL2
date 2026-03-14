@@ -28,6 +28,18 @@ Side Effects:
  -Clear color is set to black
 */
 
+bool loadMedia();
+/*
+ *Pre condition:
+ *-valid OpenGL context
+ *post condition:
+ *-loads media to use in the program
+ *-Reports to console if there was an error in loading the media
+ *-returns true if the media loaded successfully
+ *Side effects:
+ *-none
+ */
+
 void update();
 /*
 Pre Condition:
@@ -61,6 +73,10 @@ Post Condition:
 Side Effects:
  -If the user presses e, the matrix mode is set to projection
 */
+
+//Shader loading utility programs. these only log so have no effects
+void printProgramLog( GLuint program );
+void printShaderLog( GLuint shader );
 
 //viewport mode
 enum ViewPortMode
