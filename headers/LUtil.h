@@ -8,6 +8,7 @@
 const int SCREEN_WIDTH = 1280;
 const int SCREEN_HEIGHT = 720;
 const int SCREEN_FPS = 60;
+const int DEBUG = 0;
 
 //Color Modes
 const int COLOR_MODE_CYAN = 0;
@@ -50,7 +51,7 @@ Side Effects:
  -None
 */
 
-void render();
+void render(float timeValue);
 /*
 Pre Condition:
  -A valid OpenGL context
@@ -78,12 +79,3 @@ Side Effects:
 void printProgramLog( GLuint program );
 void printShaderLog( GLuint shader );
 
-//viewport mode
-enum ViewPortMode
-{
- VIEWPORT_MODE_FULL,
- VIEWPORT_MODE_HALF_CENTER,
- VIEWPORT_MODE_HALF_TOP,
- VIEWPORT_MODE_QUAD,
- VIEWPORT_MODE_RADAR
-};

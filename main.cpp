@@ -1,9 +1,4 @@
-#include <SDL.h>
-#include <SDL_image.h>
 #include "headers/LUtil.h"
-#include <SDL_opengl.h>
-#include <stdio.h>
-#include <string>
 
 //starts up SDL and creates window
 bool init();
@@ -27,6 +22,9 @@ SDL_Window* gWindow = NULL;
 //openGL context
 SDL_GLContext gContext;
 
+//debug flag
+
+
 bool init()
 {
     //initialization flag
@@ -48,7 +46,7 @@ bool init()
 
         //openGL 2.1
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_MAJOR_VERSION, 3 );
-        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 1 );
+        SDL_GL_SetAttribute( SDL_GL_CONTEXT_MINOR_VERSION, 3 );
         SDL_GL_SetAttribute( SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE );
 
 
@@ -109,8 +107,12 @@ void close()
 void runMainLoop(int val)
 {
     //frame logic
+
+    uint32_t timeElapsed = SDL_GetTicks();
+
+    float timeValue = timeElapsed / 1000.0f;
     update();
-    render();
+    render(timeValue);
 }
 
 int main( int argc, char* args[] )

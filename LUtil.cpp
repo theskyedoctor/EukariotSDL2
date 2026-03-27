@@ -4,29 +4,36 @@
 
 #include "headers/LUtil.h"
 
-int gViewportMode = VIEWPORT_MODE_FULL;
-GLfloat gCameraX = 0.f, gCameraY = 0.f;
-
 //Graphics program
-GLuint gProgramID = 0;
+GLuint shaderProgram = 0;
 GLint gVertexPos2DLocation = -1;
-GLuint gVBO = 0;
+GLuint gVBOs[2];
 GLuint gIBO = 0;
+GLuint gVAOs[2];
+
 
 bool initGL()
 {
     bool success = true;
+    //check available attributes
+    int nrAttributes;
+    glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+    if (DEBUG)
+    {
+        printf("Maximum nr of vertex attributes supported: %d", nrAttributes);
+    }
 
-    //generate program
-    gProgramID = glCreateProgram();
+    shaderProgram = glCreateProgram();
+
 
     //create vertex shader
     GLuint vertexShader = glCreateShader( GL_VERTEX_SHADER );
 
     //get vertex source
+
     const GLchar* vertexShaderSource[] =
     {
-        "#version 140\nin vec2 LVertexPos2D; void main() { gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, 0, 1 );}"
+        "#version 330 core\n layout (location = 0) in vec3 LVertexPos2D; layout (location = 1) in vec3 aColor; out vec3 ourColor; void main() { gl_Position = vec4( LVertexPos2D.x, LVertexPos2D.y, LVertexPos2D.z, 1 ); ourColor = aColor;}"
     };
 
     //set vertyex source
@@ -46,86 +53,99 @@ bool initGL()
     }
     else
     {
-        //attach vertex shader
-        glAttachShader( gProgramID, vertexShader );
-
         //create fragment shader
-        GLuint fragmentShader = glCreateShader( GL_FRAGMENT_SHADER );
+        GLuint fragmentShaderWhite = glCreateShader( GL_FRAGMENT_SHADER );
 
         //get fragment source
-        const GLchar* fragmentShaderSource[] =
+        const GLchar* fragmentShaderWhiteSource[] =
         {
-            "#version 140\nout vec4 LFragment; void main() { LFragment = vec4( 1.0, 1.0, 1.0, 1.0 ); }"
+            "#version 330 core\nout vec4 LFragment; in vec3 ourColor; void main() { LFragment = vec4(ourColor, 1.f); }"
         };
 
-        //set fragment source
-        glShaderSource( fragmentShader, 1, fragmentShaderSource, NULL );
+        //set fragment source and compile
+        glShaderSource( fragmentShaderWhite, 1, fragmentShaderWhiteSource, NULL );
+        glCompileShader( fragmentShaderWhite );
 
-        //compile fragment source
-        glCompileShader( fragmentShader );
 
         //check fragment shader for errors
-        GLint fShaderCompiled = GL_FALSE;
-        glGetShaderiv( fragmentShader, GL_COMPILE_STATUS, &fShaderCompiled );
-        if ( fShaderCompiled != GL_TRUE )
+        GLint fShader1Compiled = GL_FALSE;
+        glGetShaderiv( fragmentShaderWhite, GL_COMPILE_STATUS, &fShader1Compiled );
+        if ( (fShader1Compiled) != GL_TRUE )
         {
-            printf( "Unable to compile fragment shader %d!\n", fragmentShader );
-            printShaderLog( fragmentShader );
+            printf( "Unable to compile fragment shader %d!\n", fragmentShaderWhite );
+            printShaderLog( fragmentShaderWhite );
             success = false;
         }
         else
         {
-            //attach fragment shader to program
-            glAttachShader( gProgramID, fragmentShader );
 
-            //link program
-            glLinkProgram( gProgramID );
+
+            glAttachShader(shaderProgram, vertexShader);
+            glAttachShader(shaderProgram, fragmentShaderWhite);
+            glLinkProgram( shaderProgram );
+
 
             //check for errors
-            GLint programSuccess = GL_TRUE;
-            glGetProgramiv( gProgramID, GL_LINK_STATUS, &programSuccess );
-            if ( programSuccess != GL_TRUE )
+            GLint program1Success = GL_TRUE;
+            glGetProgramiv( shaderProgram, GL_LINK_STATUS, &program1Success );
+            if ( (program1Success ) != GL_TRUE )
             {
-                printf( "Error linking program %d!\n", gProgramID );
-                printProgramLog( gProgramID );
+                printf( "Error linking program!\n");
+                printProgramLog( shaderProgram );
                 success = false;
             }
             else
             {
-                //get vertex attribute location
-                gVertexPos2DLocation = glGetAttribLocation( gProgramID, "LVertexPos2D" );
-                if ( gVertexPos2DLocation == -1 )
+                //VBO data
+                GLfloat firstTriangle[] =
                 {
-                    printf(  "LVertexPos2D is not a valid glsl program variable!\n" );
-                    success = false;
-                }
-                else
+                    -0.9f, -0.5f, 0.f, 1.f, 0.f, 0.f, //left
+                    0.f, -0.5f, 0.f, 0.f, 1.f, 0.f, //right
+                    -0.45f, 0.5f, 0.f, 0.f, 0.f, 1.f //top
+                };
+
+                GLfloat secondTriangle[] =
                 {
-                    //Initialize clear color
-                    glClearColor( 0.f, 0.f, 0.f, 1.f );
+                    0.f, -0.5f, 0.f, 0.f, 0.f, 1.f, //left
+                    0.9f, -0.5f, 0.f, 1.f, 0.f, 0.f, //right
+                    0.45f, 0.5f, 0.f, 0.f, 1.f, 0.f //top
+                };
 
-                    //VBO data
-                    GLfloat vertexData[] =
-                    {
-                        -0.5f, -0.5f,
-                        0.5f, -0.5f,
-                        0.5f, 0.5f,
-                        -0.5f, 0.5f,
-                    };
+                //IBO data
+                //GLuint indexData[] = { 0, 1, 2 };
 
-                    //IBO data
-                    GLuint indexData[] = { 0, 1, 2, 3 };
+                //create VAO
+                glGenVertexArrays(2, gVAOs);
 
-                    //create VBO
-                    glGenBuffers( 1, &gVBO );
-                    glBindBuffer( GL_ARRAY_BUFFER, gVBO );
-                    glBufferData( GL_ARRAY_BUFFER, 2 * 4 * sizeof( GLfloat ), vertexData, GL_STATIC_DRAW );
+                //create VBO
+                glGenBuffers( 2, gVBOs );
 
-                    //create IBO
-                    glGenBuffers( 1, &gIBO );
-                    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gIBO );
-                    glBufferData( GL_ELEMENT_ARRAY_BUFFER, 4* sizeof( GLuint ), indexData, GL_STATIC_DRAW );
-                }
+                /*create IBO
+                glGenBuffers( 1, &gIBO );
+                glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gIBO );
+                glBufferData( GL_ELEMENT_ARRAY_BUFFER, 4* sizeof( GLuint ), indexData, GL_STATIC_DRAW );
+                */
+
+                //first tri
+                glBindVertexArray( gVAOs[0] );
+                glBindBuffer( GL_ARRAY_BUFFER, gVBOs[0] );
+                glBufferData( GL_ARRAY_BUFFER, sizeof( firstTriangle ), firstTriangle, GL_STATIC_DRAW );
+                glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof( GLfloat ), NULL );
+                glEnableVertexAttribArray( 0 );
+                glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof( GLfloat ), (void*) (3* sizeof(GLfloat)));
+                glEnableVertexAttribArray( 1 );
+
+                //second tri
+                glBindVertexArray( gVAOs[1] );
+                glBindBuffer( GL_ARRAY_BUFFER, gVBOs[1] );
+                glBufferData( GL_ARRAY_BUFFER, sizeof( secondTriangle ), secondTriangle, GL_STATIC_DRAW );
+                glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof( GLfloat ), NULL );
+                glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof( GLfloat ), NULL );
+                glEnableVertexAttribArray( 0 );
+                glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof( GLfloat ), (void*) (3* sizeof(GLfloat)));
+                glEnableVertexAttribArray( 1 );
+
+                //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
             }
         }
     }
@@ -142,24 +162,24 @@ void update()
     //space intentionally left blank
 }
 
-void render()
+void render( float timeValue )
 {
-    //bind program
-    glUseProgram( gProgramID );
+    float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+    //int vertexColorLocation = glGetUniformLocation( shaderProgram, "ourColor" );
+    //Initialize clear color
+    glClearColor( 0.2f, 0.3f, 0.3f, 1.f );
+    glClear(GL_COLOR_BUFFER_BIT);
 
-    //Enable vertex position
-    glEnableVertexAttribArray( gVertexPos2DLocation );
+    glUseProgram( shaderProgram );
 
-    //set vertex data
-    glBindBuffer( GL_ARRAY_BUFFER, gVBO );
-    glVertexAttribPointer( gVertexPos2DLocation, 2, GL_FLOAT, GL_FALSE, 2 * sizeof( GLfloat ), NULL );
+    //draw first tri
+    glBindVertexArray(gVAOs[0]);
+    glDrawArrays( GL_TRIANGLES, 0, 3 );
 
-    //set index data and render
-    glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, gIBO );
-    glDrawElements( GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, NULL );
+    //draw second tri
+    glBindVertexArray(gVAOs[1]);
+    glDrawArrays( GL_TRIANGLES, 0, 3 );
 
-    //disable vertex position
-    glDisableVertexAttribArray( gVertexPos2DLocation );
 
     //unbind program
     glUseProgram( NULL );
@@ -167,43 +187,7 @@ void render()
 
 void handleKeys( unsigned char key, int x, int y )
 {
-    //toggle quad color
-    if (key == 'q' )
-    {
-        //cycle through viewport modes
-        gViewportMode++;
-        if ( gViewportMode > VIEWPORT_MODE_RADAR )
-        {
-            gViewportMode = VIEWPORT_MODE_FULL;
-        }
-    }
-    if ( key == 'w' )
-    {
-        gCameraY -= 16.f;
-    }
-    if ( key == 's' )
-    {
-        gCameraY += 16.f;
-    }
-    if ( key == 'a' )
-    {
-        gCameraX -= 16.f;
-    }
-    if ( key == 'd' )
-    {
-        gCameraX += 16.f;
-    }
 
-    //take saved matrix off the stack and reset it
-    glMatrixMode( GL_MODELVIEW );
-    glPopMatrix();
-    glLoadIdentity();
-
-    //move camera to position
-    glTranslatef( -gCameraX, -gCameraY, 0.f );
-
-    //save default matrix again this time with camera translation
-    glPushMatrix();
 }
 
 void printProgramLog( GLuint program )
