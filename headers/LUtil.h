@@ -2,6 +2,9 @@
 // Created by skyehigh on 3/6/26.
 //
 
+#ifndef LUTIL_H
+#define LUTIL_H
+
 #include "LOpenGL.h"
 
 //screen constants
@@ -14,7 +17,7 @@ const int DEBUG = 0;
 const int COLOR_MODE_CYAN = 0;
 const int COLOR_MODE_MULTI = 1;
 
-bool initGL();
+void initGL();
 /*
 Pre Condition:
  -A valid OpenGL context
@@ -79,3 +82,4 @@ Side Effects:
 void printProgramLog( GLuint program );
 void printShaderLog( GLuint shader );
 
+#endif

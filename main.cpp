@@ -82,11 +82,7 @@ bool init()
                 }
 
                 //Initialize OpenGL
-                if ( !initGL() )
-                {
-                    printf( "Unable to initialize OpenGL!\n" );
-                    success = false;
-                }
+                initGL();
             }
         }
     }
