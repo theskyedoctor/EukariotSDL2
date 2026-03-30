@@ -17,5 +17,6 @@
 #include <string>
 #include <fstream>
 #include <sstream>
+#include <iostream>
 
 #endif //EUKARIOTSDL2_LOPENGL_H

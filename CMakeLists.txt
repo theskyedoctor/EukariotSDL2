@@ -6,7 +6,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package( OpenGL REQUIRED )
 find_package( GLU REQUIRED )
 
-add_executable(EukariotSDL2 main.cpp LUtil.cpp headers/LOpenGL.h headers/LUtil.h
+add_executable(EukariotSDL2 main.cpp headers/LOpenGL.h headers/LUtil.h
         headers/shader.h headers/stb_image.h)
 add_subdirectory(vendor/SDL2)
 add_subdirectory(vendor/SDL_image)
