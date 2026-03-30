@@ -17,6 +17,5 @@
 #include <string>
 #include <fstream>
 #include <sstream>
-#include "stb_image.h"
 
 #endif //EUKARIOTSDL2_LOPENGL_H
