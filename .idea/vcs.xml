@@ -3,6 +3,7 @@
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/GLEW" vcs="Git" />
+    <mapping directory="$PROJECT_DIR$/vendor/GLM" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL2" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL_image" vcs="Git" />
     <mapping directory="$PROJECT_DIR$/vendor/SDL_image/external/dav1d" vcs="Git" />

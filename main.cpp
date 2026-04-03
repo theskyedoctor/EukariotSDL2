@@ -4,6 +4,7 @@
 
 #include "headers/shader.h"
 
+
 //Graphics program
 int gVertexPos2DLocation = -1;
 unsigned int gVBO;
@@ -83,7 +84,8 @@ bool init()
                     printf( "Warning: Unable to set VSync! SDL Error: %s\n", SDL_GetError() );
                 }
 
-
+                //Initialize OpenGL
+                initGL();
             }
         }
     }
@@ -119,10 +121,8 @@ int main( int argc, char* args[] )
         //enable text input
         SDL_StartTextInput();
 
+        //create shader
         Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
-
-        //Initialize OpenGL
-        initGL();
 
         //while application is running
         while ( !quit )
@@ -155,7 +155,17 @@ int main( int argc, char* args[] )
             //glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
 
+            glm::mat4 trans = glm::mat4(1.f);
+            trans = glm::translate( trans, glm::vec3( 0.5, 0.5, 0.5 ) );
+            trans = glm::rotate( trans, (float)(SDL_GetTicks() / 1000.0), glm::vec3(0.0, 0.0, 1.0) );
+
+
             ourShader.use();
+
+            //get the transform uniform and apply the matrix
+            GLuint transformLoc = glGetUniformLocation( ourShader.ID, "transform" );
+            glUniformMatrix4fv( transformLoc, 1, GL_FALSE, glm::value_ptr(trans) );
+
 
             //draw first tri
             glBindVertexArray(gVAO);
@@ -163,6 +173,7 @@ int main( int argc, char* args[] )
 
             //unbind program
             glUseProgram( NULL );
+
 
             //update screen
             SDL_GL_SwapWindow( gWindow );
@@ -189,14 +200,12 @@ void initGL()
     //VBO data
     float vertices[] =
     {
-        //position     //color        //texture coords
-        0.5f, 0.5, 0.f, 1.f, 0.f, 0.f, 1.f, 1.f, //top right
-        0.5f, -0.5f, 0.f, 0.f, 1.f, 0.f, 1.f, 0.f, //bottom right
-        -0.5f, -0.5f, 0.f, 0.f, 0.f, 1.f, 0.f, 0.f, // bottom left
-        -0.5f, 0.5f, 0.f, 1.f, 1.f, 0.f, 0.f, 1.f // top left
-
+        //position         //color           //texture coords
+        0.5f, 0.5, 0.f,    1.f, 0.f, 0.f,    1.f, 1.f, //top right
+        0.5f, -0.5f, 0.f,  0.f, 1.f, 0.f,    1.f, 0.f, //bottom right
+        -0.5f, -0.5f, 0.f, 0.f, 0.f, 1.f,    0.f, 0.f, // bottom left
+        -0.5f, 0.5f, 0.f,  1.f, 1.f, 0.f,    0.f, 1.f // top left
     };
-
 
     //eBO data
     unsigned int indices[] = {
@@ -239,7 +248,7 @@ void initGL()
     //load and generate the texture
     int width, height, nrChannels;
     stbi_set_flip_vertically_on_load(true);
-    unsigned char *data = stbi_load("../src/textures/eukariot.png", &width, &height, &nrChannels,0);
+    unsigned char *data = stbi_load("../src/textures/Guidedcatgames.png", &width, &height, &nrChannels,0);
     if ( data )
     {
         glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);

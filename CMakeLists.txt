@@ -11,8 +11,9 @@ add_executable(EukariotSDL2 main.cpp headers/LOpenGL.h headers/LUtil.h
 add_subdirectory(vendor/SDL2)
 add_subdirectory(vendor/SDL_image)
 add_subdirectory(vendor/GLEW)
+add_subdirectory(vendor/GLM)
 
-target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image libglew_shared OpenGL::GLU)
+target_link_libraries(${PROJECT_NAME} SDL2 SDL2_image libglew_shared OpenGL::GLU glm::glm)
 
 if (WIN32)
     target_link_libraries(
