@@ -1,5 +1,7 @@
 #include "headers/LUtil.h"
 #define STB_IMAGE_IMPLEMENTATION
+#include <ranges>
+
 #include "headers/stb_image.h"
 
 #include "headers/shader.h"
@@ -86,6 +88,7 @@ bool init()
 
                 //Initialize OpenGL
                 initGL();
+                SDL_SetRelativeMouseMode(SDL_TRUE);
             }
         }
     }
@@ -114,6 +117,7 @@ int main( int argc, char* args[] )
     {
         //main loop flag
         bool quit = false;
+        bool mouseFirst = true;
 
         //event handler
         SDL_Event e;
@@ -124,52 +128,95 @@ int main( int argc, char* args[] )
         //create shader
         Shader ourShader("../src/shaders/shader.vs", "../src/shaders/shader.fs");
 
+        glm::vec3 cubePositions[] = {
+            glm::vec3( 0.0f,  0.0f,  0.0f),
+            glm::vec3( 2.0f,  5.0f, -15.0f),
+            glm::vec3(-1.5f, -2.2f, -2.5f),
+            glm::vec3(-3.8f, -2.0f, -12.3f),
+            glm::vec3( 2.4f, -0.4f, -3.5f),
+            glm::vec3(-1.7f,  3.0f, -7.5f),
+            glm::vec3( 1.3f, -2.0f, -2.5f),
+            glm::vec3( 1.5f,  2.0f, -2.5f),
+            glm::vec3( 1.5f,  0.2f, -1.5f),
+            glm::vec3(-1.3f,  1.0f, -1.5f)
+        };
+
+        //camera
+        glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 3.f);
+        glm::vec3 cameraFront = glm::vec3(0.f, 0.f, -1.f);
+        glm::vec3 cameraUp = glm::vec3(0.f, 1.f, 0.f);
+
+        float lastFrame, deltaTime = 0.f;
+
         //while application is running
         while ( !quit )
         {
+            float currentFrame = SDL_GetTicks() / 1000.f;
+            deltaTime = currentFrame - lastFrame;
+            lastFrame = currentFrame;
+            float cameraSpeed = 2.5f * deltaTime;
+
             //Handle events on queue
             while ( SDL_PollEvent( &e ) != 0 )
             {
-                //User requests quit
-                if ( e.type == SDL_QUIT )
-                {
-                    quit = true;
-                }
-                //handle keypress with current mouse position
-                else if ( e.type == SDL_TEXTINPUT )
-                {
-                    int x = 0, y = 0;
-                    SDL_GetMouseState(&x, &y);
-                    handleKeys( e.text.text[ 0 ], x, y );
-                }
+                if(e.type == SDL_QUIT){quit = true;}
+            }
+
+            const Uint8* keystates = SDL_GetKeyboardState(NULL);
+            if (keystates[SDL_SCANCODE_ESCAPE])
+            {
+                quit = true;
+            }
+            if(keystates[SDL_SCANCODE_W]){
+                cameraPos += cameraFront * cameraSpeed;
+            }
+            if(keystates[SDL_SCANCODE_S]){
+                cameraPos -= cameraFront * cameraSpeed;
+            }
+            if(keystates[SDL_SCANCODE_D]){
+                cameraPos += glm::normalize(glm::cross(cameraFront ,cameraUp )) * cameraSpeed;
+            }
+            if(keystates[SDL_SCANCODE_A]){
+                cameraPos -= glm::normalize(glm::cross(cameraFront ,cameraUp)) * cameraSpeed;
             }
 
             update();
 
+            glm::mat4 view = glm::mat4(1.f);
+            view = glm::lookAt(cameraPos, cameraPos+cameraFront, cameraUp);
+
+            glm::mat4 projection = glm::mat4(1.f);
+            projection = glm::perspective(glm::radians(45.f), (float)(SCREEN_WIDTH) / (float)(SCREEN_HEIGHT), 0.1f, 100.f);
+
             //Initialize clear color
             glClearColor( 0.2f, 0.3f, 0.3f, 1.f );
-            glClear(GL_COLOR_BUFFER_BIT);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 
 
             //glActiveTexture(GL_TEXTURE0);
             glBindTexture(GL_TEXTURE_2D, texture);
 
-            glm::mat4 trans = glm::mat4(1.f);
-            trans = glm::translate( trans, glm::vec3( 0.5, 0.5, 0.5 ) );
-            trans = glm::rotate( trans, (float)(SDL_GetTicks() / 1000.0), glm::vec3(0.0, 0.0, 1.0) );
-
-
             ourShader.use();
 
-            //get the transform uniform and apply the matrix
-            GLuint transformLoc = glGetUniformLocation( ourShader.ID, "transform" );
-            glUniformMatrix4fv( transformLoc, 1, GL_FALSE, glm::value_ptr(trans) );
 
+
+            ourShader.setMat4("projection", projection);
+            ourShader.setMat4("view", view);
 
             //draw first tri
             glBindVertexArray(gVAO);
-            glDrawElements( GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0 );
+
+            for (unsigned int i = 0; i <10; i++)
+            {
+                glm::mat4 model = glm::mat4(1.f);
+                model = glm::translate(model, cubePositions[i]);
+                float angle = (10.f * i) + 10.f;
+                model = glm::rotate(model, glm::radians(angle)*(SDL_GetTicks()/1000.f), glm::vec3(1.f, 0.5f, 0.1f));
+                ourShader.setMat4("model", model);
+
+                glDrawArrays( GL_TRIANGLES, 0, 36 );
+            }
 
             //unbind program
             glUseProgram( NULL );
@@ -200,11 +247,47 @@ void initGL()
     //VBO data
     float vertices[] =
     {
-        //position         //color           //texture coords
-        0.5f, 0.5, 0.f,    1.f, 0.f, 0.f,    1.f, 1.f, //top right
-        0.5f, -0.5f, 0.f,  0.f, 1.f, 0.f,    1.f, 0.f, //bottom right
-        -0.5f, -0.5f, 0.f, 0.f, 0.f, 1.f,    0.f, 0.f, // bottom left
-        -0.5f, 0.5f, 0.f,  1.f, 1.f, 0.f,    0.f, 1.f // top left
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+         0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+         0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+        -0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+        -0.5f,  0.5f, -0.5f,  0.0f, 1.0f
     };
 
     //eBO data
@@ -229,12 +312,10 @@ void initGL()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gEBO);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof( indices ), indices, GL_STATIC_DRAW );
 
-    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof( float ), NULL );
+    glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof( float ), NULL );
     glEnableVertexAttribArray( 0 );
-    glVertexAttribPointer( 1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof( float ), (void*) (3* sizeof(float)));
+    glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof( float ), (void*) (3* sizeof(float)));
     glEnableVertexAttribArray( 1 );
-    glVertexAttribPointer( 2, 2, GL_FLOAT, GL_FALSE, 8 * sizeof( float ), (void*) (6 * sizeof(float)));
-    glEnableVertexAttribArray( 2 );
 
 
     //texture setup
@@ -261,6 +342,7 @@ void initGL()
     }
 
     stbi_image_free(data);
+    glEnable(GL_DEPTH_TEST);
     //glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 }
 
